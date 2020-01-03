@@ -2,7 +2,7 @@
  * @Author: jweboy
  * @Date: 2019-12-18 18:14:59
  * @LastEditors  : jweboy
- * @LastEditTime : 2019-12-18 18:17:41
+ * @LastEditTime : 2020-01-03 15:35:03
  */
 const webpack = require('webpack');
 const WebpackDevServer = require('webpack-dev-server');
@@ -57,6 +57,7 @@ function startServer() {
     // 404响应代替为 index.html
     historyApiFallback: true,
   };
+  // console.log(webpackConfig);
   // return;
   const devServer = new WebpackDevServer(compiler, serverOptions);
 

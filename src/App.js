@@ -2,12 +2,11 @@
  * @Author: jweboy
  * @Date: 2019-12-18 18:55:17
  * @LastEditors  : jweboy
- * @LastEditTime : 2019-12-18 18:57:27
+ * @LastEditTime : 2020-01-03 13:02:19
  */
 import React from 'react'
 import styles from './index.less';
-console.log(styles)
-import Card from './components/Card'
+import Card from './Card'
 
 export default function() {
   return (
