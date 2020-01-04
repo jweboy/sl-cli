@@ -23,30 +23,29 @@ function startServer() {
   const webpackConfig = getWebpackConfig();
   const compiler = webpack(webpackConfig);
   const serverOptions = {
-    // 提供给 WebpackDevServer 的来源目录
-    contentBase: paths.appDist,
-    // 去除没用的 WebpackDevServer logs
-    clientLogLevel: 'none',
-    // 隐藏bundle相关信息,只接收错误和警告
-    noInfo: true,
-    // 全屏显示error错误信息
-    overlay: true,
+    // clientLogLevel: 'info', // 显示在开发者控制台的消息
+    contentBase: paths.dist, // 提供静态资源的目录
+    noInfo: true, // 隐藏bundle信息,只接收错误和警告信息
+    overlay: true, // 在浏览器中全屏显示错误信息
+    compress: true, // 启用gzip压缩
+    hot: true, // 模块热更新
+    // https://www.webpackjs.com/configuration/dev-server/#devserver-progress-%E5%8F%AA%E7%94%A8%E4%BA%8E%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%B7%A5%E5%85%B7-cli-
+    publicPath: webpackConfig.output.publicPath, // 静态资源的文件目录
+
+    // lazy: true, // 惰性编译，只有在请求时候才进行编译
+    // filename: '[name].js',
     // 开发过程中隐藏bundle信息，此选项覆盖noInfo和quiet选项
     // 有正常的log监听以及发生错误的时候输出错误
     // FIXME: 精准显示bundle相关信息,用于调试环境。
-    // stats: {
-    //   assets: true,
-    //   hash: true,
-    // },  stats: 'errors-only',
+    stats: {
+      assets: true,
+      hash: true,
+    },
+    // stats: 'errors-only',
 
-    // 启用gzip压缩
-    compress: true,
     // 监听 paths.appDist 中的文件变化
     watchContentBase: true,
-    // 热加载模块
-    hot: true,
-    // 静态资源的文件目录
-    publicPath: webpackConfig.output.publicPath,
+
     // publicPath: config.output.publicPath,
     // 是否使用https协议
     https: PROTOCOL === 'https',

@@ -4,19 +4,43 @@
  * @LastEditors  : jweboy
  * @LastEditTime : 2020-01-03 18:51:24
  */
+// @ts-nocheck
 const Config = require('webpack-chain');
 const webpack = require('webpack');
 const happyPack = require('happypack');
-const tsImportPluginFactory = require('ts-import-plugin');
 const path = require('path');
 const os = require('os');
+const HappyPack = require('happypack');
 const paths = require('./paths');
 
 // require.resolve 获取依赖包的绝对路径
+// TODO: DLL
+// TODO: dev server 相关配置
 
 // https://github.com/Yatoo2018/webpack-chain/tree/zh-cmn-Hans
 
+const happyThreadPool = HappyPack.ThreadPool({
+  size: os.cpus().length - 1, // 共享线程池
+});
+
 module.exports = function gettWebpackConfig() {
+  const tsConfigFile = path.join(__dirname, 'tsconfig.default.json');
+  const babelOpts = {
+    // TODO: 还有一些babel插件需要添加
+    plugins: [
+      require.resolve('@babel/plugin-proposal-class-properties'),
+      [
+        require.resolve('babel-plugin-import'),
+        {
+          libraryName: 'antd',
+          style: true, // `style: true` 会加载 less 文件
+        },
+      ],
+    ],
+    // TODO: babel option
+    presets: [[require.resolve('@babel/preset-env'), { modules: false }], require.resolve('@babel/preset-react')],
+  };
+
   const config = new Config();
 
   process.env.NODE_ENV = 'development';
@@ -52,83 +76,27 @@ module.exports = function gettWebpackConfig() {
   // alias
   // TODO:
 
-  // config.externals({
-  //   react: path.join(__dirname, '../../../node_modules/react/index.js'),
-  // });
-
-  const babelOpts = {
-    // TODO: 还有一些babel插件需要添加
-    plugins: [
-      require.resolve('@babel/plugin-proposal-class-properties'),
-      [
-        require.resolve('babel-plugin-import'),
-        {
-          libraryName: 'antd',
-          style: true, // `style: true` 会加载 less 文件
-        },
-      ],
-    ],
-    presets: [[require.resolve('@babel/preset-env'), { modules: false }], require.resolve('@babel/preset-react')],
-  };
-
   // module => babel
   config.module
     .rule('jsx')
     .test(/\.js(x)?$/)
-    .include.add(process.cwd())
+    .include.add(paths.appDir)
     .end()
     .use('babel-loader')
-    // .loader('happypack/loader?id=babelPack');
-    .loader(require.resolve('babel-loader'))
-    .options(babelOpts);
+    .loader('happypack/loader?id=js');
 
-  // TODO: babel option
-
-  const tsConfigFile = path.join(__dirname, 'tsconfig.default.json');
-  const tsImportPlugin = require.resolve('ts-import-plugin');
-  console.log('tsImportPlugin =>', require(tsImportPlugin));
-
-  // rules => ts
+  // module => ts
   config.module
     .rule('ts')
     .test(/\.ts(x)?$/)
-    .use('cache-loader')
-    .loader(require.resolve('cache-loader'));
-
-  config.module
-    .rule('ts')
-    .test(/\.ts(x)?$/)
-    // .include.add(paths.appDir)
-    // .end()
-    // .exclude.add(paths.nodeModules)
-    // .end()
-    .use('awesome-typescript-loader')
-    .loader(require.resolve('awesome-typescript-loader'))
-    .options({
-      configFileName: tsConfigFile,
-      transpileOnly: true, // 禁用 Webpack 中的 ts 检查
-      // useCache: true,
-      // cacheDirectory: path.join(paths.appDir, '.cache-loader'),
-      // getCustomTransformers: () => {
-      //   return {
-      //     // `antd` 样式按需加载
-      //     before: [
-      //       require(tsImportPlugin)({
-      //         libraryName: 'antd',
-      //         style: true,
-      //       }),
-      //     ],
-      //   };
-      // },
-    });
+    .use('ts-loader')
+    .loader('happypack/loader?id=ts');
 
   // 解析 node_modules 中的 css/less 文件，不让 css-loader 做模块化处理
   config.module
     .rule('depStyles')
     .test(/\.less$/)
     .include.add(paths.nodeModules)
-    .end()
-    .exclude.add(process.cwd())
     .end()
     .use('style-loader')
     .loader(require.resolve('style-loader'));
@@ -153,12 +121,16 @@ module.exports = function gettWebpackConfig() {
   config.module
     .rule('appStyles')
     .test(/\.less$/)
-    .include.add(paths.appDir)
-    .end()
-    .exclude.add(paths.nodeModules)
+    .include.add(paths.src)
     .end()
     .use('style-loader')
     .loader(require.resolve('style-loader'));
+
+  config.module
+    .rule('appStyles')
+    .test(/\.less$/)
+    .use('@teamsupercell/typings-for-css-modules-loader')
+    .loader(require.resolve('@teamsupercell/typings-for-css-modules-loader'));
 
   config.module
     .rule('appStyles')
@@ -195,32 +167,53 @@ module.exports = function gettWebpackConfig() {
       name: 'static/[name].[hash:8].[ext]',
     });
 
-  // config.plugin('hot').use(webpack.HotModuleReplacementPlugin);
+  // plugin => happypack for js
+  config.plugin('jsHappyPack').use(require.resolve('happypack'), [
+    {
+      id: 'js',
+      threadPool: happyThreadPool,
+      loaders: [
+        {
+          loader: require.resolve('babel-loader'),
+          options: babelOpts,
+        },
+      ],
+    },
+  ]);
 
-  // plugin => happyPack
-  // const threadPool = happyPack.ThreadPool({
-  //   size: os.cpus.length,
-  // });
+  // plugin => happypack for ts
+  config.plugin('tsHappyPack').use(require.resolve('happypack'), [
+    {
+      id: 'ts',
+      threadPool: happyThreadPool,
+      loaders: [
+        {
+          loader: require.resolve('babel-loader'),
+          options: babelOpts,
+        },
+        {
+          loader: require.resolve('ts-loader'),
+          options: {
+            happyPackMode: true, // 屏蔽错误注入到 webpack 中，并使用 fork-ts-checker-webpack-plugin 插件做完整的类型检查
+            configFile: tsConfigFile,
+          },
+        },
+      ],
+    },
+  ]);
 
-  // config.plugin('HappyPack').use(require.resolve('happypack'), [
-  //   {
-  //     id: 'babelPack',
-  //     // threads: threadPool,
-  //     // threadPool,
-  //     loaders: [
-  //       {
-  //         loader: require.resolve('babel-loader'),
-  //         options: {
-  //           plugins: [require.resolve('@babel/plugin-proposal-class-properties')],
-  //           presets: [require.resolve('@babel/preset-env'), require.resolve('@babel/preset-react')],
-  //         },
-  //       },
-  //     ],
-  //   },
-  // ]);
+  // TODO:  It is possible to write a custom webpack plugin using the fork-ts-checker-service-before-start hook from https://github.com/TypeStrong/fork-ts-checker-webpack-plugin#plugin-hooks to delay the start of type checking until all the *.d.ts files are generated. Potentially, this plugin can be included in this repository.
+  // plugin => ts checker
+  // TODO: https://github.com/TypeStrong/fork-ts-checker-webpack-plugin
+  config.plugin('ForkTsCheckerWebpackPlugin').use(require.resolve('fork-ts-checker-webpack-plugin'), [
+    {
+      checkSyntacticErrors: true,
+      // context: tsConfigFile,
+    },
+  ]);
 
   // plugin => html
-  config.plugin('HtmlWebpackPlugin').use(require.resolve('html-webpack-plugin'), [
+  config.plugin('html').use(require.resolve('html-webpack-plugin'), [
     {
       title: 'sl-tmeplate',
       template: paths.appIndexHtml,
@@ -228,10 +221,17 @@ module.exports = function gettWebpackConfig() {
   ]);
 
   // plugin => dashboard
-  config.plugin('DashboardPlugin').use(require.resolve('webpack-dashboard/plugin'));
+  // config.plugin('dashboard').use(require.resolve('webpack-dashboard/plugin'), [
+  //   {
+  //     port: 4001,
+  //   },
+  // ]);
 
-  console.log(config.toConfig().module.rules);
-  console.log(config.toConfig().module.rules[1].use);
+  // plugin => ignore
+  // config.plugin('ignore').use(webpack.WatchIgnorePlugin([/less\.d\.ts/]));
+
+  // console.log(config.toConfig().plugins);
+  // console.log(config.toConfig().plugins[0]);
 
   return config.toConfig();
 };

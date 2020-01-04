@@ -21,13 +21,13 @@ const resolveApp = (relativePath) => path.join(appDir, relativePath);
 module.exports = {
   appDir: resolveApp('.'),
   src: resolveApp('src'),
+  dist: resolveApp('dist'),
   appIndexJs: resolveApp('src/index.js'),
   appVendor: resolveApp('src/vendor.js'),
   appSrcComponents: resolveApp('src/components'),
   appSrcUtil: resolveApp('src/util'),
   nodeModules: path.join(__dirname, '../../../node_modules'),
   appIndexHtml: path.resolve('public/index.html'),
-  appDist: resolveApp('dist'),
   assetsPath: resolveApp('assets'),
   appDistAssets: resolveApp('dist/assets'),
 };

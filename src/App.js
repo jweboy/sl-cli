@@ -6,7 +6,7 @@
  */
 import React from 'react'
 import styles from './index.less';
-import Card from './Card'
+import Card from './components/Card'
 
 export default function() {
   return (
