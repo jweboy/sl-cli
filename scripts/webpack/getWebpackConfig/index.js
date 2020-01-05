@@ -7,14 +7,13 @@
 // @ts-nocheck
 const Config = require('webpack-chain');
 const webpack = require('webpack');
-const happyPack = require('happypack');
 const path = require('path');
 const os = require('os');
 const HappyPack = require('happypack');
-const paths = require('./paths');
+const chalk = require('chalk');
+const paths = require('../../config/paths');
 
 // require.resolve 获取依赖包的绝对路径
-// TODO: DLL
 // TODO: dev server 相关配置
 
 // https://github.com/Yatoo2018/webpack-chain/tree/zh-cmn-Hans
@@ -24,8 +23,8 @@ const happyThreadPool = HappyPack.ThreadPool({
 });
 
 module.exports = function gettWebpackConfig() {
-  const tsConfigFile = path.join(__dirname, 'tsconfig.default.json');
   const babelOpts = {
+    cacheDirectory: true,
     // TODO: 还有一些babel插件需要添加
     plugins: [
       require.resolve('@babel/plugin-proposal-class-properties'),
@@ -37,7 +36,6 @@ module.exports = function gettWebpackConfig() {
         },
       ],
     ],
-    // TODO: babel option
     presets: [[require.resolve('@babel/preset-env'), { modules: false }], require.resolve('@babel/preset-react')],
   };
 
@@ -83,14 +81,27 @@ module.exports = function gettWebpackConfig() {
     .include.add(paths.appDir)
     .end()
     .use('babel-loader')
-    .loader('happypack/loader?id=js');
+    .loader(require.resolve('happypack/loader'))
+    .options({ id: 'js' });
 
   // module => ts
   config.module
     .rule('ts')
     .test(/\.ts(x)?$/)
+    .include.add(paths.appDir)
+    .end()
+    .use('babel-loader')
+    .loader(require.resolve('babel-loader'))
+    .options(babelOpts);
+
+  config.module
+    .rule('ts')
+    .test(/\.ts(x)?$/)
+    .include.add(paths.appDir)
+    .end()
     .use('ts-loader')
-    .loader('happypack/loader?id=ts');
+    .loader(require.resolve('happypack/loader'))
+    .options({ id: 'ts' });
 
   // 解析 node_modules 中的 css/less 文件，不让 css-loader 做模块化处理
   config.module
@@ -194,8 +205,9 @@ module.exports = function gettWebpackConfig() {
         {
           loader: require.resolve('ts-loader'),
           options: {
+            // silent: true,
             happyPackMode: true, // 屏蔽错误注入到 webpack 中，并使用 fork-ts-checker-webpack-plugin 插件做完整的类型检查
-            configFile: tsConfigFile,
+            configFile: paths.tsConfigFile,
           },
         },
       ],
@@ -204,13 +216,31 @@ module.exports = function gettWebpackConfig() {
 
   // TODO:  It is possible to write a custom webpack plugin using the fork-ts-checker-service-before-start hook from https://github.com/TypeStrong/fork-ts-checker-webpack-plugin#plugin-hooks to delay the start of type checking until all the *.d.ts files are generated. Potentially, this plugin can be included in this repository.
   // plugin => ts checker
-  // TODO: https://github.com/TypeStrong/fork-ts-checker-webpack-plugin
-  config.plugin('ForkTsCheckerWebpackPlugin').use(require.resolve('fork-ts-checker-webpack-plugin'), [
-    {
-      checkSyntacticErrors: true,
-      // context: tsConfigFile,
-    },
-  ]);
+  // https://github.com/TypeStrong/fork-ts-checker-webpack-plugin
+  // TODO: 修正
+  // config.plugin('ForkTsCheckerWebpackPlugin').use(require.resolve('fork-ts-checker-webpack-plugin'), [
+  //   {
+  //     checkSyntacticErrors: true,
+  //     // context: paths.appDir,
+  //     tsconfig: paths.tsConfigFile,
+  //     silent: true,
+  //     // async: false,
+  //     formatter: (msg) => {
+  //       const msgColor = msg.severity === 'warning' ? chalk.bold.yellow : chalk.bold.red;
+  //       return (
+  //         chalk.grey('[tsl] ') +
+  //         msgColor(msg.severity.toUpperCase()) +
+  //         (msg.file === '' ? '' : msgColor(' in ') + chalk.bold.cyan(`${msg.file}(${msg.line},${msg.character})`)) +
+  //         os.EOL +
+  //         msgColor(`      TS${msg.code}: ${msg.content}`)
+  //       );
+  //     },
+  //   },
+  // ]);
+
+  // config
+  //   .plugin('fork-ts-checker-notifier-webpack-plugin')
+  //   .use(require.resolve('fork-ts-checker-notifier-webpack-plugin'));
 
   // plugin => html
   config.plugin('html').use(require.resolve('html-webpack-plugin'), [
@@ -220,6 +250,26 @@ module.exports = function gettWebpackConfig() {
     },
   ]);
 
+  // plugin => progress bar
+  config.plugin('webpackBar').use(require.resolve('webpackbar'));
+
+  // plugin => friendly errors
+  config.plugin('friendlyErrors').use(require.resolve('friendly-errors-webpack-plugin'));
+
+  // plugin => auto dll
+  // TODO: https://github.com/asfktz/autodll-webpack-plugin/blob/master/src/paths.js
+  // findCacheDir  函数不支持 cwd 属性，需要自己撸一个或者提 PR
+  // config.plugin('dll').use(require.resolve('autodll-webpack-plugin'), [
+  //   {
+  //     inject: true,
+  //     filename: 'dlls.js',
+  //     entry: {
+  //       vendor: ['react'],
+  //     },
+  //   },
+  // ]);
+
+  // config.plugin('hmr').use(require('webpack/lib/HotModuleReplacementPlugin'));
   // plugin => dashboard
   // config.plugin('dashboard').use(require.resolve('webpack-dashboard/plugin'), [
   //   {

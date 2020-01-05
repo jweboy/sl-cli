@@ -11,14 +11,14 @@ const isNumber = (num: number) => {
 const Card = () => {
   return (
     <div>
-      <div className={`${styles.card}`}>card..</div>
-      <Button type="primary">click.me。。。</Button>
+      <div className={`${styles.card}`}>card.////////\\\\====----ppp.</div>
+      <Button type="primary">click.me。--//////==--。。</Button>
       <Alert message="hhaha" type="success" />
       <Tag color="orange">tag</Tag>
       <Button type="danger">Danger</Button>
       <Button type="link">Link</Button>
       <Switch defaultChecked />
-      {isNumber(1)}
+      {isNumber(9)}
     </div>
   )
 }

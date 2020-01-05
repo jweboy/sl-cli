@@ -18,16 +18,19 @@ const fs = require('fs');
 const appDir = fs.realpathSync(process.cwd());
 const resolveApp = (relativePath) => path.join(appDir, relativePath);
 
+// console.log(path.join(__dirname, '../../node_modules'));
+
 module.exports = {
   appDir: resolveApp('.'),
   src: resolveApp('src'),
   dist: resolveApp('dist'),
-  appIndexJs: resolveApp('src/index.js'),
-  appVendor: resolveApp('src/vendor.js'),
-  appSrcComponents: resolveApp('src/components'),
-  appSrcUtil: resolveApp('src/util'),
-  nodeModules: path.join(__dirname, '../../../node_modules'),
-  appIndexHtml: path.resolve('public/index.html'),
-  assetsPath: resolveApp('assets'),
-  appDistAssets: resolveApp('dist/assets'),
+  nodeModules: path.join(__dirname, '../../node_modules'),
+  appIndexHtml: path.join(__dirname, '../public/index.html'),
+  tsConfigFile: path.join(__dirname, './tsconfig.default.json'),
+  // appIndexJs: resolveApp('src/index.js'),
+  // appVendor: resolveApp('src/vendor.js'),
+  // appSrcComponents: resolveApp('src/components'),
+  // appSrcUtil: resolveApp('src/util'),
+  // assetsPath: resolveApp('assets'),
+  // appDistAssets: resolveApp('dist/assets'),
 };
