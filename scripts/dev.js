@@ -2,7 +2,7 @@
  * @Author: jweboy
  * @Date: 2019-12-18 18:14:59
  * @LastEditors  : jweboy
- * @LastEditTime : 2020-01-03 15:35:03
+ * @LastEditTime : 2020-01-06 14:22:16
  */
 // @ts-nocheck
 const webpack = require('webpack');
@@ -11,6 +11,7 @@ const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 // const chalk = require('chalk');
 const getWebpackConfig = require('./webpack/getWebpackConfig/dev');
 const paths = require('./config/paths');
+const openBrowser = require('../utils/openBrowser');
 
 // const { choosePort } = require('../utils/devServerUtils');
 
@@ -66,6 +67,8 @@ function startServer() {
   devServer.listen(PORT, HOST, (err) => {
     // if (err) {
     // }
+    const url = `${PROTOCOL}://${HOST}:${PORT}`;
+    openBrowser(url);
     // console.log(chalk.cyan(`Server is running at ${PROTOCOL}://${HOST}:${PORT}`));
   });
 }
