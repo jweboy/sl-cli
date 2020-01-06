@@ -2,7 +2,7 @@
  * @Author: jweboy
  * @Date: 2019-12-19 16:43:09
  * @LastEditors  : jweboy
- * @LastEditTime : 2020-01-03 18:51:24
+ * @LastEditTime : 2020-01-06 16:28:37
  */
 // @ts-nocheck
 const Config = require('webpack-chain');
@@ -12,10 +12,9 @@ const os = require('os');
 const HappyPack = require('happypack');
 const chalk = require('chalk');
 const paths = require('../../config/paths');
+const babelOpts = require('../../../utils/getBabelOptions');
 
 // require.resolve 获取依赖包的绝对路径
-// TODO: dev server 相关配置
-
 // https://github.com/Yatoo2018/webpack-chain/tree/zh-cmn-Hans
 
 const happyThreadPool = HappyPack.ThreadPool({
@@ -23,27 +22,9 @@ const happyThreadPool = HappyPack.ThreadPool({
 });
 
 module.exports = function gettWebpackConfig() {
-  const babelOpts = {
-    cacheDirectory: true,
-    // TODO: 还有一些babel插件需要添加
-    plugins: [
-      require.resolve('@babel/plugin-proposal-class-properties'),
-      [
-        require.resolve('babel-plugin-import'),
-        {
-          libraryName: 'antd',
-          style: true, // `style: true` 会加载 less 文件
-        },
-      ],
-    ],
-    presets: [[require.resolve('@babel/preset-env'), { modules: false }], require.resolve('@babel/preset-react')],
-  };
-
   const config = new Config();
 
-  process.env.NODE_ENV = 'development';
-
-  // config.context('/Users/jianglei/ReactProjects/my-app');
+  // process.env.NODE_ENV = 'development';
 
   // target
   config.target('web');
@@ -259,12 +240,12 @@ module.exports = function gettWebpackConfig() {
   // plugin => auto dll
   // TODO: https://github.com/asfktz/autodll-webpack-plugin/blob/master/src/paths.js
   // findCacheDir  函数不支持 cwd 属性，需要自己撸一个或者提 PR
-  // config.plugin('dll').use(require.resolve('autodll-webpack-plugin'), [
+  // config.plugin('dll').use(require('/Users/sl/GitProjects/autodll-webpack-plugin'), [
   //   {
   //     inject: true,
   //     filename: 'dlls.js',
   //     entry: {
-  //       vendor: ['react'],
+  //       vendor: [require.resolve('react'), require.resolve('react-dom'), require.resolve('antd')],
   //     },
   //   },
   // ]);
