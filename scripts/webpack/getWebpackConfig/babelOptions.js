@@ -2,10 +2,11 @@
  * @Author: jweboy
  * @Date: 2020-01-06 16:26:36
  * @LastEditors  : jweboy
- * @LastEditTime : 2020-01-06 16:29:47
+ * @LastEditTime : 2020-01-06 18:26:41
  */
 const options = {
   cacheDirectory: true,
+  babelrc: false,
   plugins: [
     require.resolve('@babel/plugin-syntax-dynamic-import'),
     require.resolve('@babel/plugin-proposal-object-rest-spread'),

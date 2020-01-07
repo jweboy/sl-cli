@@ -2,7 +2,7 @@
  * @Author: jweboy
  * @Date: 2019-12-19 16:43:09
  * @LastEditors  : jweboy
- * @LastEditTime : 2020-01-06 16:28:37
+ * @LastEditTime : 2020-01-07 13:30:32
  */
 // @ts-nocheck
 const Config = require('webpack-chain');
@@ -12,25 +12,32 @@ const os = require('os');
 const HappyPack = require('happypack');
 const chalk = require('chalk');
 const paths = require('../../config/paths');
-const babelOpts = require('../../../utils/getBabelOptions');
+const babelOpts = require('./babelOptions');
 
 // require.resolve 获取依赖包的绝对路径
 // https://github.com/Yatoo2018/webpack-chain/tree/zh-cmn-Hans
 
+process.env.NODE_ENV = 'production';
+
 const happyThreadPool = HappyPack.ThreadPool({
   size: os.cpus().length - 1, // 共享线程池
 });
+const isProd = process.env.NODE_ENV === 'production';
+const isDev = process.env.NODE_ENV === 'development';
+console.log(process.env.NODE_ENV);
 
-module.exports = function gettWebpackConfig() {
+module.exports = function getWebpackConfig() {
   const config = new Config();
-
-  // process.env.NODE_ENV = 'development';
-
+  const tsOpts = {
+    // silent: true,
+    happyPackMode: true, // 屏蔽错误注入到 webpack 中，并使用 fork-ts-checker-webpack-plugin 插件做完整的类型检查
+    configFile: paths.tsConfigFile,
+  };
   // target
   config.target('web');
 
   // mode
-  config.mode('development');
+  config.mode(process.env.NODE_ENV);
 
   // devtool
   config.devtool('cheap-module-source-map');
@@ -40,9 +47,9 @@ module.exports = function gettWebpackConfig() {
 
   // output
   config.output
-    .path(paths.appDist)
-    .filename('[name].js')
-    .chunkFilename('[name].chunk.js')
+    .path(paths.dist)
+    .filename('js/[name].js')
+    .chunkFilename('js/[name].chunk.js')
     .publicPath('/');
 
   // modules
@@ -62,8 +69,8 @@ module.exports = function gettWebpackConfig() {
     .include.add(paths.appDir)
     .end()
     .use('babel-loader')
-    .loader(require.resolve('happypack/loader'))
-    .options({ id: 'js' });
+    .loader(isDev ? require.resolve('happypack/loader') : require.resolve('babel-loader'))
+    .options(isDev ? { id: 'js' } : babelOpts);
 
   // module => ts
   config.module
@@ -81,72 +88,107 @@ module.exports = function gettWebpackConfig() {
     .include.add(paths.appDir)
     .end()
     .use('ts-loader')
-    .loader(require.resolve('happypack/loader'))
-    .options({ id: 'ts' });
+    .loader(isDev ? require.resolve('happypack/loader') : require.resolve('ts-loader'))
+    .options(isDev ? { id: 'ts' } : tsOpts);
 
-  // 解析 node_modules 中的 css/less 文件，不让 css-loader 做模块化处理
-  config.module
-    .rule('depStyles')
-    .test(/\.less$/)
-    .include.add(paths.nodeModules)
-    .end()
-    .use('style-loader')
-    .loader(require.resolve('style-loader'));
+  if (isDev) {
+    // 解析 node_modules 中的 css/less 文件，不让 css-loader 做模块化处理
+    config.module
+      .rule('depStyles')
+      .test(/\.less$/)
+      .include.add(paths.nodeModules)
+      .end()
+      .use('style-loader')
+      .loader(require.resolve('style-loader'));
 
-  config.module
-    .rule('depStyles')
-    .test(/\.less$/)
-    .use('css-loader')
-    .loader(require.resolve('css-loader'));
+    config.module
+      .rule('depStyles')
+      .test(/\.less$/)
+      .use('css-loader')
+      .loader(require.resolve('css-loader'));
 
-  config.module
-    .rule('depStyles')
-    .test(/\.less$/)
-    .use('less')
-    .loader(require.resolve('less-loader'))
-    .options({
-      javascriptEnabled: true,
-      sourceMap: true,
-    });
+    config.module
+      .rule('depStyles')
+      .test(/\.less$/)
+      .use('less')
+      .loader(require.resolve('less-loader'))
+      .options({
+        javascriptEnabled: true,
+        sourceMap: true,
+      });
 
-  // 解析当前项目中的 css/less 文件
-  config.module
-    .rule('appStyles')
-    .test(/\.less$/)
-    .include.add(paths.src)
-    .end()
-    .use('style-loader')
-    .loader(require.resolve('style-loader'));
+    // 解析当前项目中的 css/less 文件
+    config.module
+      .rule('appStyles')
+      .test(/\.less$/)
+      .include.add(paths.src)
+      .end()
+      .use('style-loader')
+      .loader(require.resolve('style-loader'));
 
-  config.module
-    .rule('appStyles')
-    .test(/\.less$/)
-    .use('@teamsupercell/typings-for-css-modules-loader')
-    .loader(require.resolve('@teamsupercell/typings-for-css-modules-loader'));
+    config.module
+      .rule('appStyles')
+      .test(/\.less$/)
+      .use('@teamsupercell/typings-for-css-modules-loader')
+      .loader(require.resolve('@teamsupercell/typings-for-css-modules-loader'));
 
-  config.module
-    .rule('appStyles')
-    .test(/\.less$/)
-    .use('css-loader')
-    .loader(require.resolve('css-loader'))
-    .options({
-      modules: {
-        localIdentName: '[name]__[local]',
-        // localIdentName: '[name]__[local]--[hash:base64:5]', // for pro
-      },
-      sourceMap: true,
-      localsConvention: 'camelCase', // 支持小驼峰转换 app-logo => styles.appLogo
-    });
+    config.module
+      .rule('appStyles')
+      .test(/\.less$/)
+      .use('css-loader')
+      .loader(require.resolve('css-loader'))
+      .options({
+        modules: {
+          localIdentName: '[name]__[local]',
+          // localIdentName: '[name]__[local]--[hash:base64:5]', // for pro
+        },
+        sourceMap: true,
+        localsConvention: 'camelCase', // 支持小驼峰转换 app-logo => styles.appLogo
+      });
 
-  config.module
-    .rule('appStyles')
-    .test(/\.less$/)
-    .use('less')
-    .loader(require.resolve('less-loader'))
-    .options({
-      javascriptEnabled: true,
-      sourceMap: true,
-    });
+    config.module
+      .rule('appStyles')
+      .test(/\.less$/)
+      .use('less')
+      .loader(require.resolve('less-loader'))
+      .options({
+        javascriptEnabled: true,
+        sourceMap: true,
+      });
+  }
+
+  if (isProd) {
+    config.module
+      .rule('css')
+      .include.add(paths.nodeModules)
+      .end()
+      .test(/\.less$/)
+      .use('mini-css-extract-plugin')
+      .loader(require('mini-css-extract-plugin').loader);
+
+    config.module
+      .rule('css')
+      .test(/\.less$/)
+      .use('css-loader')
+      .loader(require.resolve('css-loader'))
+      .options({
+        modules: {
+          localIdentName: '[name]__[local]__[hash:base64:5]', // for pro
+        },
+        sourceMap: true,
+        localsConvention: 'camelCase', // 支持小驼峰转换 app-logo => styles.appLogo
+      });
+
+    config.module
+      .rule('css')
+      .test(/\.less$/)
+      .use('less')
+      .loader(require.resolve('less-loader'))
+      .options({
+        javascriptEnabled: true,
+        sourceMap: true,
+      });
+  }
 
   // module => file
   config.module
@@ -159,41 +201,41 @@ module.exports = function gettWebpackConfig() {
       name: 'static/[name].[hash:8].[ext]',
     });
 
-  // plugin => happypack for js
-  config.plugin('jsHappyPack').use(require.resolve('happypack'), [
-    {
-      id: 'js',
-      threadPool: happyThreadPool,
-      loaders: [
-        {
-          loader: require.resolve('babel-loader'),
-          options: babelOpts,
-        },
-      ],
-    },
-  ]);
-
-  // plugin => happypack for ts
-  config.plugin('tsHappyPack').use(require.resolve('happypack'), [
-    {
-      id: 'ts',
-      threadPool: happyThreadPool,
-      loaders: [
-        {
-          loader: require.resolve('babel-loader'),
-          options: babelOpts,
-        },
-        {
-          loader: require.resolve('ts-loader'),
-          options: {
-            // silent: true,
-            happyPackMode: true, // 屏蔽错误注入到 webpack 中，并使用 fork-ts-checker-webpack-plugin 插件做完整的类型检查
-            configFile: paths.tsConfigFile,
+  if (isDev) {
+    // plugin => happypack for js
+    config.plugin('jsHappyPack').use(require.resolve('happypack'), [
+      {
+        id: 'js',
+        threadPool: happyThreadPool,
+        loaders: [
+          {
+            loader: require.resolve('babel-loader'),
+            options: babelOpts,
           },
-        },
-      ],
-    },
-  ]);
+        ],
+      },
+    ]);
+  }
+
+  if (isDev) {
+    // plugin => happypack for ts
+    config.plugin('tsHappyPack').use(require.resolve('happypack'), [
+      {
+        id: 'ts',
+        threadPool: happyThreadPool,
+        loaders: [
+          {
+            loader: require.resolve('babel-loader'),
+            options: babelOpts,
+          },
+          {
+            loader: require.resolve('ts-loader'),
+            options: tsOpts,
+          },
+        ],
+      },
+    ]);
+  }
 
   // TODO:  It is possible to write a custom webpack plugin using the fork-ts-checker-service-before-start hook from https://github.com/TypeStrong/fork-ts-checker-webpack-plugin#plugin-hooks to delay the start of type checking until all the *.d.ts files are generated. Potentially, this plugin can be included in this repository.
   // plugin => ts checker
@@ -234,9 +276,12 @@ module.exports = function gettWebpackConfig() {
   // plugin => progress bar
   config.plugin('webpackBar').use(require.resolve('webpackbar'));
 
-  // plugin => friendly errors
-  config.plugin('friendlyErrors').use(require.resolve('friendly-errors-webpack-plugin'));
+  if (isDev) {
+    // plugin => friendly errors
+    config.plugin('friendlyErrors').use(require.resolve('friendly-errors-webpack-plugin'));
+  }
 
+  // TODO: DefinePlugin
   // plugin => auto dll
   // TODO: https://github.com/asfktz/autodll-webpack-plugin/blob/master/src/paths.js
   // findCacheDir  函数不支持 cwd 属性，需要自己撸一个或者提 PR
@@ -264,5 +309,5 @@ module.exports = function gettWebpackConfig() {
   // console.log(config.toConfig().plugins);
   // console.log(config.toConfig().plugins[0]);
 
-  return config.toConfig();
+  return config;
 };

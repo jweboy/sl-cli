@@ -2,14 +2,16 @@
  * @Author: jweboy
  * @Date: 2019-12-18 18:14:59
  * @LastEditors  : jweboy
- * @LastEditTime : 2020-01-06 14:22:16
+ * @LastEditTime : 2020-01-06 18:23:31
  */
+process.env.NODE_ENV = 'development';
+
 // @ts-nocheck
 const webpack = require('webpack');
 const WebpackDevServer = require('webpack-dev-server');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 // const chalk = require('chalk');
-const getWebpackConfig = require('./webpack/getWebpackConfig/dev');
+const webpackConfig = require('./webpack/getWebpackConfig/dev');
 const paths = require('./config/paths');
 const openBrowser = require('../utils/openBrowser');
 
@@ -21,8 +23,7 @@ const HOST = process.env.HOST || '127.0.0.1';
 const PORT = process.env.PORT || 4000;
 const PROTOCOL = process.env.HTTPS ? 'https' : 'http';
 
-function startServer() {
-  const webpackConfig = getWebpackConfig();
+function dev() {
   const compiler = webpack(webpackConfig);
 
   // https://www.webpackjs.com/configuration/dev-server/#devserver-progress-%E5%8F%AA%E7%94%A8%E4%BA%8E%E5%91%BD%E4%BB%A4%E8%A1%8C%E5%B7%A5%E5%85%B7-cli-
@@ -67,13 +68,16 @@ function startServer() {
   devServer.listen(PORT, HOST, (err) => {
     // if (err) {
     // }
+
     const url = `${PROTOCOL}://${HOST}:${PORT}`;
+    console.log(url);
     openBrowser(url);
     // console.log(chalk.cyan(`Server is running at ${PROTOCOL}://${HOST}:${PORT}`));
   });
 }
 
-startServer();
+module.exports = dev;
+// startServer();
 // choosePort(HOST, PORT).then(() => {
 //   console.log('ok;');
 //   //   // TODO: 注释
