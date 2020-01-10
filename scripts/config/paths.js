@@ -2,7 +2,7 @@
  * @Author: jweboy
  * @Date: 2019-12-11 13:22:50
  * @LastEditors  : jweboy
- * @LastEditTime : 2020-01-03 15:28:22
+ * @LastEditTime : 2020-01-10 13:23:37
  */
 const path = require('path');
 const fs = require('fs');
@@ -24,6 +24,7 @@ module.exports = {
   appDir: resolveApp('.'),
   src: resolveApp('src'),
   dist: resolveApp('dist'),
+  appNodeModules: resolveApp('node_modules'),
   nodeModules: path.join(__dirname, '../../node_modules'),
   appIndexHtml: path.join(__dirname, '../public/index.html'),
   tsConfigFile: path.join(__dirname, './tsconfig.default.json'),

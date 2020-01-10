@@ -2,7 +2,7 @@
  * @Author: jweboy
  * @Date: 2019-12-19 16:43:09
  * @LastEditors  : jweboy
- * @LastEditTime : 2020-01-07 13:30:32
+ * @LastEditTime : 2020-01-10 13:29:45
  */
 // @ts-nocheck
 const Config = require('webpack-chain');
@@ -17,7 +17,7 @@ const babelOpts = require('./babelOptions');
 // require.resolve 获取依赖包的绝对路径
 // https://github.com/Yatoo2018/webpack-chain/tree/zh-cmn-Hans
 
-process.env.NODE_ENV = 'production';
+// process.env.NODE_ENV = 'production';
 
 const happyThreadPool = HappyPack.ThreadPool({
   size: os.cpus().length - 1, // 共享线程池
@@ -58,6 +58,13 @@ module.exports = function getWebpackConfig() {
     .add(paths.nodeModules)
     .end()
     .extensions.merge(['.js', '.jsx', '.ts', '.tsx', '.json']);
+
+  console.log(paths.appNodeModules, paths.nodeModules);
+
+  config.resolveLoader.modules
+    .add('node_modules')
+    .add(paths.nodeModules)
+    .end();
 
   // alias
   // TODO:
@@ -278,7 +285,15 @@ module.exports = function getWebpackConfig() {
 
   if (isDev) {
     // plugin => friendly errors
-    config.plugin('friendlyErrors').use(require.resolve('friendly-errors-webpack-plugin'));
+    config.plugin('friendlyErrors').use(require.resolve('friendly-errors-webpack-plugin'), [
+      {
+        onErrors(severity, errors) {
+          console.log(severity, errors);
+          // You can listen to errors transformed and prioritized by the plugin
+          // severity can be 'error' or 'warning'
+        },
+      },
+    ]);
   }
 
   // TODO: DefinePlugin

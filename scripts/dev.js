@@ -2,7 +2,7 @@
  * @Author: jweboy
  * @Date: 2019-12-18 18:14:59
  * @LastEditors  : jweboy
- * @LastEditTime : 2020-01-06 18:23:31
+ * @LastEditTime : 2020-01-10 13:25:40
  */
 process.env.NODE_ENV = 'development';
 
@@ -48,7 +48,7 @@ function dev() {
     watchOptions: {
       ignored: /node_modules/, // 排除 node_modules 目录监听
     },
-    // stats: 'errors-only',
+    stats: 'errors-only',
   };
   // console.log(webpackConfig);
   // return;
